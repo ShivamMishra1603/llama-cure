@@ -16,6 +16,10 @@ speech_model = SpeechModel()
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
+    concise: Optional[bool] = False
+    max_tokens: Optional[int] = None
+    system_prompt: Optional[str] = None
+    temperature: Optional[float] = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -32,8 +36,24 @@ async def chat_endpoint(request: ChatRequest):
     Process a text chat message through the Llama model.
     """
     try:
+        # Pass additional parameters for concise responses
+        generation_options = {}
+        
+        # Handle concise mode
+        if request.concise:
+            generation_options["max_tokens"] = request.max_tokens or 150
+            generation_options["temperature"] = request.temperature or 0.7
+            
+            # Add a system prompt for concise responses if not provided
+            if not request.system_prompt:
+                generation_options["system_prompt"] = "You are a medical assistant providing brief, concise responses. Keep all answers under 100 words. Be direct and focus on the most important information."
+            else:
+                generation_options["system_prompt"] = request.system_prompt
+        
         response, conversation_id = llama_model.generate_response(
-            request.message, request.conversation_id
+            request.message, 
+            request.conversation_id,
+            **generation_options
         )
         return {"response": response, "conversation_id": conversation_id}
     except Exception as e:

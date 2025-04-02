@@ -2,7 +2,7 @@ import os
 import uuid
 import json
 import base64
-from typing import Tuple, Optional, Dict, List, Union
+from typing import Tuple, Optional, Dict, List, Union, Any
 import httpx
 from groq import Groq
 from backend.config.config import GROQ_API_KEY, GROQ_MODEL
@@ -16,13 +16,25 @@ class LlamaModel:
         self.model = GROQ_MODEL
         self.conversations: Dict[str, List[Dict]] = {}
         
-    def generate_response(self, message: str, conversation_id: Optional[str] = None) -> Tuple[str, str]:
+    def generate_response(
+        self, 
+        message: str, 
+        conversation_id: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        system_prompt: Optional[str] = None,
+        **kwargs
+    ) -> Tuple[str, str]:
         """
         Generate a response using the Llama model via Groq API.
         
         Args:
             message: The user's message
             conversation_id: Optional conversation ID for maintaining context
+            max_tokens: Optional maximum number of tokens to generate
+            temperature: Optional temperature for sampling
+            system_prompt: Optional system prompt to override the default
+            **kwargs: Additional parameters to pass to the API
             
         Returns:
             Tuple of (response_text, conversation_id)
@@ -35,14 +47,17 @@ class LlamaModel:
         # Get or create conversation history
         conversation = self.conversations.get(conversation_id, [])
         
+        # Default system prompt for medical context
+        default_system_prompt = """You are LlamaCure, a helpful medical assistant. 
+You can provide general medical information and guidance, but always remind users to consult healthcare professionals for proper diagnosis and treatment. 
+You should be accurate, compassionate, and clear in your responses. 
+If you're unsure about something, acknowledge your limitations and avoid making definitive claims."""
+
         # Prepare messages for the model
         messages = [
             {
                 "role": "system", 
-                "content": """You are LlamaCure, a helpful medical assistant. 
-You can provide general medical information and guidance, but always remind users to consult healthcare professionals for proper diagnosis and treatment. 
-You should be accurate, compassionate, and clear in your responses. 
-If you're unsure about something, acknowledge your limitations and avoid making definitive claims."""
+                "content": system_prompt or default_system_prompt
             }
         ]
         
@@ -54,14 +69,20 @@ If you're unsure about something, acknowledge your limitations and avoid making 
         messages.append({"role": "user", "content": message})
         
         try:
+            # Prepare API parameters
+            api_params = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature or 0.7,
+                "max_tokens": max_tokens or 1024,
+                "top_p": 0.9
+            }
+            
+            # Add any additional parameters
+            api_params.update(kwargs)
+            
             # Generate response
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1024,
-                top_p=0.9
-            )
+            response = self.client.chat.completions.create(**api_params)
             
             response_text = response.choices[0].message.content
             
@@ -85,7 +106,15 @@ class VisionModel:
         self.model = GROQ_MODEL
         self.conversations: Dict[str, List[Dict]] = {}
         
-    def analyze_image(self, image_path: str, prompt: str, conversation_id: Optional[str] = None) -> Tuple[str, str]:
+    def analyze_image(
+        self, 
+        image_path: str, 
+        prompt: str, 
+        conversation_id: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        **kwargs
+    ) -> Tuple[str, str]:
         """
         Analyze an image with an optional text prompt.
         
@@ -93,6 +122,9 @@ class VisionModel:
             image_path: Path to the image file
             prompt: Text prompt for the image analysis
             conversation_id: Optional conversation ID for maintaining context
+            max_tokens: Optional maximum number of tokens to generate
+            temperature: Optional temperature for sampling
+            **kwargs: Additional parameters to pass to the API
             
         Returns:
             Tuple of (analysis_text, conversation_id)
@@ -115,7 +147,7 @@ class VisionModel:
             content = [
                 {
                     "type": "text", 
-                    "text": f"You are a helpful medical assistant. Analyze this medical image and provide detailed information. Remember to be accurate, compassionate, and clear. Remind the user to consult healthcare professionals for proper diagnosis and treatment. {prompt}"
+                    "text": f"You are a helpful medical assistant. Analyze this medical image and provide detailed information. Keep responses concise. Remember to be accurate, compassionate, and clear. Remind the user to consult healthcare professionals for proper diagnosis and treatment. {prompt}"
                 },
                 {
                     "type": "image_url",
@@ -136,14 +168,20 @@ class VisionModel:
             # Add current message with image
             messages.append({"role": "user", "content": content})
             
+            # Prepare API parameters
+            api_params = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature or 0.7,
+                "max_tokens": max_tokens or 1024,
+                "top_p": 0.9
+            }
+            
+            # Add any additional parameters
+            api_params.update(kwargs)
+            
             # Generate response
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1024,
-                top_p=0.9
-            )
+            response = self.client.chat.completions.create(**api_params)
             
             analysis_text = response.choices[0].message.content
             
