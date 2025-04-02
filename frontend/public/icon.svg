@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background Circle -->
-  <circle cx="256" cy="256" r="248" fill="#4CAF50" stroke="#388E3C" stroke-width="16"/>
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="white"/>
   
-  <!-- Stethoscope -->
-  <path d="M320 160C320 142.33 305.67 128 288 128H224C206.33 128 192 142.33 192 160V224" stroke="white" stroke-width="24" stroke-linecap="round"/>
-  <path d="M192 224C192 224 192 272 144 272C96 272 96 224 96 224" stroke="white" stroke-width="24" stroke-linecap="round"/>
-  <path d="M144 272V352C144 387.35 172.65 416 208 416H304C339.35 416 368 387.35 368 352V256" stroke="white" stroke-width="24" stroke-linecap="round"/>
-  <circle cx="368" cy="224" r="32" fill="white" stroke="#388E3C" stroke-width="16"/>
+  <!-- Stethoscope - blue color matching the UI -->
+  <path d="M256 96C213.49 96 160 129.49 160 186.67V256C160 269.25 170.75 280 184 280C197.25 280 208 269.25 208 256V186.67C208 155.84 240.47 144 256 144C271.53 144 304 155.84 304 186.67V256C304 273.67 310.84 289.17 321.33 300.83C331.83 312.5 346.33 320 362.67 320C395.33 320 422.67 297.33 422.67 266.67C422.67 236 400 213.33 368 213.33C362.67 213.33 357.33 214.17 352 216V186.67C352 129.49 298.51 96 256 96Z" fill="#3f51b5" stroke="#3f51b5" stroke-width="16"/>
   
-  <!-- Llama Head Silhouette -->
-  <path d="M288 160C288 160 304 176 304 208C304 240 288 256 288 256C288 256 272 272 256 272C240 272 224 256 224 256C224 256 208 240 208 208C208 176 224 160 224 160" fill="#9C27B0" stroke="white" stroke-width="8"/>
+  <!-- Stethoscope earpieces - adjusted for better visibility -->
+  <path d="M184 280V365.33C184 399.33 215.33 426.67 253.33 426.67C291.33 426.67 322.67 399.33 322.67 365.33V320" stroke="#3f51b5" stroke-width="24" stroke-linecap="round"/>
   
-  <!-- Cross Symbol -->
-  <path d="M256 184V232" stroke="white" stroke-width="12" stroke-linecap="round"/>
-  <path d="M232 208H280" stroke="white" stroke-width="12" stroke-linecap="round"/>
+  <!-- Stethoscope chest piece circle -->
+  <circle cx="368" cy="266.67" r="32" fill="white" stroke="#3f51b5" stroke-width="16"/>
 </svg> 
