@@ -67,7 +67,40 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleStartRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      
+      // Check if MediaRecorder supports specific MIME types
+      const mimeTypes = [
+        'audio/webm',           // Most widely supported
+        'audio/mpeg',           // MP3
+        'audio/mp4',            // MP4
+        'audio/wav',            // WAV
+        'audio/aac',            // AAC
+        'audio/ogg;codecs=opus' // Ogg Opus
+      ];
+      
+      // Find the first supported MIME type
+      let selectedMimeType = '';
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          selectedMimeType = type;
+          break;
+        }
+      }
+      
+      // If no supported type is found, fall back to default
+      if (!selectedMimeType) {
+        selectedMimeType = 'audio/webm';
+        console.warn('No specified MIME types supported, falling back to audio/webm');
+      }
+      
+      console.log('Using MIME type for recording:', selectedMimeType);
+      
+      // Create the MediaRecorder with options
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: selectedMimeType,
+        audioBitsPerSecond: 128000
+      });
+      
       audioChunksRef.current = [];
       
       mediaRecorderRef.current.ondataavailable = (e) => {
@@ -77,7 +110,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
       };
       
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        // Use the same MIME type for the blob that was used for recording
+        const audioBlob = new Blob(audioChunksRef.current, { type: selectedMimeType });
+        
         // Stop all audio tracks
         stream.getAudioTracks().forEach(track => track.stop());
         

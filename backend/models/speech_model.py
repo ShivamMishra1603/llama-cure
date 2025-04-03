@@ -8,6 +8,9 @@ import soundfile as sf
 import sounddevice as sd
 from httpx import Client
 from gtts import gTTS  # Import Google Text-to-Speech
+import subprocess
+import wave
+from pydub import AudioSegment
 from backend.config.config import GROQ_API_KEY
 
 class SpeechModel:
@@ -22,6 +25,57 @@ class SpeechModel:
         if not os.path.exists(self.audio_dir):
             os.makedirs(self.audio_dir)
     
+    def convert_to_wav(self, audio_file_path: str) -> str:
+        """
+        Convert audio file to WAV format for compatibility with speech recognition
+        
+        Args:
+            audio_file_path: Path to the original audio file
+            
+        Returns:
+            Path to the converted WAV file
+        """
+        try:
+            # Get file extension
+            file_ext = os.path.splitext(audio_file_path)[1].lower()
+            
+            # If it's already a .wav file, just return the path
+            if file_ext == '.wav':
+                return audio_file_path
+                
+            # Create a temporary WAV file
+            temp_wav_path = audio_file_path + "_converted.wav"
+            
+            # Convert audio using pydub
+            try:
+                audio = AudioSegment.from_file(audio_file_path)
+                audio.export(temp_wav_path, format="wav")
+                print(f"Successfully converted {file_ext} to WAV using pydub")
+                return temp_wav_path
+            except Exception as e:
+                print(f"Pydub conversion failed: {e}, trying ffmpeg directly")
+                
+                # Fallback to ffmpeg directly
+                try:
+                    cmd = [
+                        'ffmpeg',
+                        '-i', audio_file_path,
+                        '-acodec', 'pcm_s16le',
+                        '-ar', '16000',
+                        '-ac', '1',
+                        temp_wav_path
+                    ]
+                    subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+                    print(f"Successfully converted {file_ext} to WAV using ffmpeg")
+                    return temp_wav_path
+                except Exception as ffmpeg_error:
+                    print(f"ffmpeg conversion failed: {ffmpeg_error}")
+                    raise Exception(f"Could not convert audio format {file_ext} to WAV") 
+        
+        except Exception as e:
+            print(f"Error converting audio: {e}")
+            return audio_file_path  # Return original path as fallback
+    
     def transcribe_audio(self, audio_file_path: str) -> str:
         """
         Transcribe audio file to text.
@@ -33,10 +87,22 @@ class SpeechModel:
             Transcription text
         """
         try:
-            with sr.AudioFile(audio_file_path) as source:
+            # First convert to WAV if needed
+            wav_file_path = self.convert_to_wav(audio_file_path)
+            
+            with sr.AudioFile(wav_file_path) as source:
+                print(f"Processing audio file: {wav_file_path}")
                 audio_data = self.recognizer.record(source)
                 # Use Google's speech recognition (could be replaced with a medical-specific model)
                 transcription = self.recognizer.recognize_google(audio_data)
+                
+                # Clean up temporary file if it was created during conversion
+                if wav_file_path != audio_file_path and os.path.exists(wav_file_path):
+                    try:
+                        os.remove(wav_file_path)
+                    except:
+                        pass
+                
                 return transcription
         except Exception as e:
             print(f"Error transcribing audio: {e}")

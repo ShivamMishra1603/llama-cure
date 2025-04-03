@@ -49,7 +49,25 @@ export const chatService = {
 export const voiceService = {
   transcribeAudio: async (audioBlob: Blob): Promise<TranscriptionResponse> => {
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'audio.wav');
+    
+    // Get the mime type from the blob
+    const contentType = audioBlob.type || 'audio/webm';
+    
+    // Append with correct filename extension based on mimetype
+    const getExtension = (mime: string) => {
+      if (mime.includes('wav')) return '.wav';
+      if (mime.includes('mp3') || mime.includes('mpeg')) return '.mp3';
+      if (mime.includes('mp4')) return '.mp4';
+      if (mime.includes('ogg')) return '.ogg';
+      if (mime.includes('aac')) return '.aac';
+      if (mime.includes('webm')) return '.webm';
+      return '.webm'; // Default extension
+    };
+    
+    const filename = `audio${getExtension(contentType)}`;
+    console.log(`Sending audio with type: ${contentType}, filename: ${filename}`);
+    
+    formData.append('audio', audioBlob, filename);
     
     const response = await api.post('/api/voice/transcribe', formData, {
       headers: {

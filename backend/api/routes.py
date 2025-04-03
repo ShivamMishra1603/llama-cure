@@ -70,12 +70,30 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
             
-        # Save temporary audio file
-        temp_file_path = os.path.join(temp_dir, f"temp_audio_{os.urandom(8).hex()}.wav")
+        # Get file extension from content-type or use default
+        content_type = audio.content_type or ""
+        extension = ".webm"  # Default extension
+        
+        if "wav" in content_type:
+            extension = ".wav"
+        elif "mp3" in content_type or "mpeg" in content_type:
+            extension = ".mp3"
+        elif "mp4" in content_type:
+            extension = ".mp4"
+        elif "aac" in content_type:
+            extension = ".aac"
+        elif "ogg" in content_type:
+            extension = ".ogg"
+            
+        # Save temporary audio file with proper extension
+        temp_file_path = os.path.join(temp_dir, f"temp_audio_{os.urandom(8).hex()}{extension}")
         with open(temp_file_path, "wb") as f:
             content = await audio.read()
             f.write(content)
         
+        # Log for debugging
+        print(f"Received audio with content-type: {content_type}, saved as: {temp_file_path}")
+            
         # Transcribe audio
         transcription = speech_model.transcribe_audio(temp_file_path)
         
@@ -85,6 +103,7 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         
         return {"transcription": transcription}
     except Exception as e:
+        print(f"Error in transcribe_audio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @vision_router.post("/analyze")
